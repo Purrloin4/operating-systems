@@ -9,6 +9,8 @@
 #include <string.h>
 #include "datamgr.h"
 #include "lib/dplist.h"
+#include "sbuffer.h"
+#include <pthread.h>
 
 dplist_t * sensor_list;
 
@@ -34,19 +36,15 @@ int element_compare(void * x, void * y) {
     }
 }
 
+void* datamgr_parse_sensor_files(void* sbuffer){
 
+    sbuffer_t* buffer = (sbuffer_t*) sbuffer;
 
-
-void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
-
+    //open file "room_sensor.map"
+    FILE *fp_sensor_map = fopen("room_sensor.map", "r");
     //if fp_sensor_map is NULL, print error message and exit
     if (fp_sensor_map == NULL) {
         fprintf(stderr,"error: fp_sensor_map is NULL");
-    }
-
-    //if fp_sensor_data is NULL, print error message and exit
-    if (fp_sensor_data == NULL) {
-        fprintf(stderr,"error: fp_sensor_data is NULL");
     }
 
     //put room_id and sensor_id in the list
@@ -61,49 +59,47 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
     }
     free(element);
 
-    //get sensor data from binary file and update the list
-    sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
-    while (fread(&sensor_data->id, sizeof(sensor_data->id ), 1, fp_sensor_data) == 1) {
-        fread(&sensor_data->value, sizeof(sensor_data->value), 1, fp_sensor_data);
-        fread(&sensor_data->ts, sizeof(sensor_data->ts), 1, fp_sensor_data);
 
-        //find the element in the list
-        element_t *element1 = get_element_fromID(sensor_data->id);
-        if (element1 == NULL) {
-            fprintf(stderr, "error: sensor id %d not found in sensor map", sensor_data->id);
-        } else {
-            //update the average and the timestamp
-            putr_AVG(element1, sensor_data->value);
+        //get sensor data from buffer and update the list
+        sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
+        while (sbuffer_eof(buffer) != SBUFFER_SUCCESS && sbuffer_is_empty(buffer)) {
+            sbuffer_remove(buffer, sensor_data);
 
-            element1->last_ts = datamgr_get_last_modified(element1, sensor_data->ts);
+            //find the element in the list
+            element_t *element1 = get_element_fromID(sensor_data->id);
+            if (element1 == NULL) {
+                fprintf(stderr, "error: sensor id %d not found in sensor map", sensor_data->id);
+            } else {
+                //update the average and the timestamp
+                putr_AVG(element1, sensor_data->value);
+
+                element1->last_ts = datamgr_get_last_modified(element1, sensor_data->ts);
 
 
-            //check average for logging
-            int avg = datamgr_get_avg(element1->sensor_id);
-            if(avg>SET_MAX_TEMP){
-                fprintf(stderr,"Room %d is too hot\n", element1->room_id);
+                //check average for logging
+                int avg = datamgr_get_avg(element1->sensor_id);
+                if (avg > SET_MAX_TEMP) {
+                    fprintf(stderr, "Room %d is too hot\n", element1->room_id);
+                }
+
+                if (avg < SET_MIN_TEMP) {
+                    fprintf(stderr, "Room %d is too cold\n", element1->room_id);
+                }
+
+                /*
+                //for length of sensor list print the element
+                for (int i = 0; i < dpl_size(sensor_list); i++) {
+                    element_t *element2 = dpl_get_element_at_index(sensor_list, i);
+                    fprintf(stderr, "sensor id: %d, room id: %d,last timestamp:%ld, average: %f\n", element2->sensor_id, element2->room_id,
+                            element2->last_ts,datamgr_get_avg(element2->sensor_id));
+                }
+                 */
             }
-
-            if(avg<SET_MIN_TEMP){
-                fprintf(stderr,"Room %d is too cold\n", element1->room_id);
-            }
-            /*
-
-
-            //for length of sensor list print the element
-            for (int i = 0; i < dpl_size(sensor_list); i++) {
-                element_t *element2 = dpl_get_element_at_index(sensor_list, i);
-                fprintf(stderr, "sensor id: %d, room id: %d,last timestamp:%ld, average: %f\n", element2->sensor_id, element2->room_id,
-                        element2->last_ts,datamgr_get_avg(element2->sensor_id));
-            }
-             */
-
-
-
         }
-    }
+
 
     free(sensor_data);
+    pthread_exit(NULL);
 
 };
 
@@ -167,8 +163,5 @@ time_t datamgr_get_last_modified(element_t* element,sensor_ts_t ts){
     } else {
         return ts;
     }
-
-
-
 }
 

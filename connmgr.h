@@ -13,7 +13,14 @@ typedef struct arg_struct {
     sbuffer_t *buffer;
 }arg_t;
 
+typedef struct connmgr_args{
+    int port;
+    sbuffer_t * buffer;
+}connmgr_args_t;
+
+
 void* socket_thread(arg_t *arg);
-void* connmgr_main(int PORT, sbuffer_t* buffer);
+
+void * connmgr_main(void *arg);
 
 #endif //PLAB3CONNMGR_TEST_SERVER_H

@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     int i, j;
     time_t starttime = time(&starttime);
     srand48(time(NULL));
-    /*
+
     // generate ascii file room_sensor.map
     fp_text = fopen("room_sensor.map", "w");
     FILE_ERROR(fp_text, "Couldn't create room_sensor.map\n");
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
         fprintf(fp_text, "%" PRIu16 " %" PRIu16 "\n", room_id[i], sensor_id[i]);
     }
     fclose(fp_text);
-    */
+
 
     // generate binary file sensor_data and corresponding log file
     fp_bin = fopen("sensor_data", "w");

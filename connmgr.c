@@ -20,12 +20,11 @@ int thread_id;
 
 
 
+void * connmgr_main(void* conn_args) {
 
-/**
- * Implements a sequential test server (only one connection at the same time)
- */
-
-void* connmgr_main(int PORT, sbuffer_t* buffer) {
+    struct connmgr_args* arg = (struct connmgr_args*) conn_args;
+    int PORT = arg->port;
+    sbuffer_t * buffer = arg->buffer;
 
 
     if(PORT>65536 || PORT<1024) {
@@ -80,10 +79,13 @@ void* socket_thread(arg_t *arg) {
         // read timestamp
         bytes = sizeof(data.ts);
         result = tcp_receive(client, (void *) &data.ts, &bytes);
+
+        data.read_by_datamgr = 0;
+        data.read_by_storagemgr = 0;
         if ((result == TCP_NO_ERROR) && bytes) {
 
             //instead of printing the data, we put it in the buffer
-            //printf("Connmgr has inserted :sensor id = %" PRIu16 " - temperature = %g - timestamp = %ld\n", data.id, data.value, (long int) data.ts);
+            printf("Connmgr has inserted :sensor id = %" PRIu16 " - temperature = %g - timestamp = %ld\n", data.id, data.value, (long int) data.ts);
             sbuffer_insert(buffer, &data);
 
         }

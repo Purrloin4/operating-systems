@@ -20,7 +20,7 @@ sensor_gateway : main.c connmgr.c datamgr.c sensor_db.c sbuffer.c lib/libdplist.
 
 file_creator : file_creator.c
 	@echo "$(TITLE_COLOR)\n***** COMPILE & LINKING file_creator *****$(NO_COLOR)"
-	gcc file_creator.c -o file_creator -Wall -fdiagnostics-color=auto
+	gcc file_creator.c -o build/file_creator -Wall -fdiagnostics-color=auto
 
 sensor_node : sensor_node.c lib/libtcpsock.so
 	@echo "$(TITLE_COLOR)\n***** COMPILING sensor_node *****$(NO_COLOR)"
@@ -53,12 +53,20 @@ clean:
 clean-all: clean
 	rm -rf lib/*.so
 
-test-connmgr-sbuffer: main.c connmgr.c sbuffer.c lib/tcpsock.c
+test-connmgr: main.c connmgr.c sbuffer.c lib/tcpsock.c
 	mkdir -p build
-	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=10 -DSET_MAX_TEMP=20 -DTIMEOUT=5 main.c connmgr.c sbuffer.c lib/tcpsock.c -o build/test-connmgr-sbuffer     -fdiagnostics-color=auto
+	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=10 -DSET_MAX_TEMP=20 -DTIMEOUT=5 main.c connmgr.c sbuffer.c lib/tcpsock.c -o build/test-connmgr     -fdiagnostics-color=auto
 
-run : test-connmgr-sbuffer sensor_node
-	@echo done
+test-datamgr: main.c datamgr.c sbuffer.c lib/tcpsock.c
+	mkdir -p build
+	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=15 -DSET_MAX_TEMP=20 -DTIMEOUT=5 main.c datamgr.c sbuffer.c lib/dplist.c -o build/test-datamgr     -fdiagnostics-color=auto
+
+test-datamgr-connmgr: main.c datamgr.c connmgr.c sbuffer.c lib/tcpsock.c
+	mkdir -p build
+	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=15 -DSET_MAX_TEMP=20 -DTIMEOUT=5 main.c datamgr.c connmgr.c sbuffer.c lib/tcpsock.c lib/dplist.c -o build/test-datamgr-connmgr     -fdiagnostics-color=auto
+
+run : test-datamgr sensor_node
+	./build/test-datamgr 1102
 
 zip:
 	zip lab_final.zip main.c connmgr.c connmgr.h datamgr.c datamgr.h sbuffer.c sbuffer.h sensor_db.c sensor_db.h config.h lib/dplist.c lib/dplist.h lib/tcpsock.c lib/tcpsock.h

@@ -20,8 +20,17 @@ typedef struct {
     sensor_id_t id;         /** < sensor id */
     sensor_value_t value;   /** < sensor value */
     sensor_ts_t ts;         /** < sensor timestamp */
+    int read_by_datamgr;    /** < flag to indicate if the sensor data has been read by datamgr */
+    int read_by_storagemgr; /** < flag to indicate if the sensor data has been read by storagemgr */
 } sensor_data_t;
 
+typedef struct {
+    sensor_id_t id;         /** < sensor id */
+    sensor_value_t value;   /** < sensor value */
+    sensor_ts_t ts;         /** < sensor timestamp */
+    int read_by_datamgr;    /** < flag to indicate if the sensor data has been read by datamgr */
+    int read_by_storagemgr; /** < flag to indicate if the sensor data has been read by storagemgr */
+} sensor_data2_t;
 
 #ifndef RUN_AVG_LENGTH
 #define RUN_AVG_LENGTH 5
@@ -35,6 +44,7 @@ typedef struct{
     int tail;                      /** < index of the next empty slot in the queue */
     sensor_ts_t last_ts;         /** < sensor timestamp */
 } element_t;
+
 
 
 #endif /* _CONFIG_H_ */
