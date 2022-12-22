@@ -16,22 +16,17 @@
 #define MAX_CONN 3  // state the max. number of connections the server will handle before exiting
 pthread_t threads[MAX_CONN];  // array of threads
 sem_t sem;  // semaphore to control the number of threads
-int PORT;
 int thread_id;
+
+
 
 
 /**
  * Implements a sequential test server (only one connection at the same time)
  */
 
-int main(int argc, char *argv[]) {
+void* connmgr_main(int PORT, sbuffer_t* buffer) {
 
-    if (argc != 2) {
-        printf("Need to pass a portnumber larger than 1023, and smaller than 6553\n");
-        exit(EXIT_FAILURE);
-    }
-
-    PORT = atoi(argv[1]);
 
     if(PORT>65536 || PORT<1024) {
         printf("Need to pass a portnumber larger than 1023, and smaller than 6553\n");
@@ -44,6 +39,7 @@ int main(int argc, char *argv[]) {
     thread_id = 0;
     sem_init(&sem, 0, MAX_CONN);
 
+
     printf("Test server is started\n");
     if (tcp_passive_open(&server, PORT) != TCP_NO_ERROR) exit(EXIT_FAILURE);
     do {
@@ -53,8 +49,12 @@ int main(int argc, char *argv[]) {
 
         sem_wait(&sem);
 
+        struct arg_struct args;
+        args.sock = client;
+        args.buffer = buffer;
+
         //start socket thread
-        pthread_create(&threads[thread_id], NULL, socket_thread, client);
+        pthread_create(&threads[thread_id], NULL, (void *(*)(void *)) socket_thread, &args);
 
     } while (1);
     tcp_close(&client);
@@ -63,11 +63,13 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-void* socket_thread(void* client) {
+void* socket_thread(arg_t *arg) {
     int bytes,result;
     sensor_data_t data;
     int thread_id2 = thread_id;
     thread_id++;
+    tcpsock_t *client = arg->sock;
+    sbuffer_t *buffer = arg->buffer;
     do {
         // read sensor ID
         bytes = sizeof(data.id);
@@ -79,8 +81,11 @@ void* socket_thread(void* client) {
         bytes = sizeof(data.ts);
         result = tcp_receive(client, (void *) &data.ts, &bytes);
         if ((result == TCP_NO_ERROR) && bytes) {
-            printf("sensor id = %" PRIu16 " - temperature = %g - timestamp = %ld\n", data.id, data.value,
-                    (long int) data.ts);
+
+            //instead of printing the data, we put it in the buffer
+            //printf("Connmgr has inserted :sensor id = %" PRIu16 " - temperature = %g - timestamp = %ld\n", data.id, data.value, (long int) data.ts);
+            sbuffer_insert(buffer, &data);
+
         }
     } while (result == TCP_NO_ERROR);
 

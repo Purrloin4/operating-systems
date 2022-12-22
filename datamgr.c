@@ -10,11 +10,7 @@
 #include "datamgr.h"
 #include "lib/dplist.h"
 
-
-
-
 dplist_t * sensor_list;
-
 
 void * element_copy(void * element) {
     element_t* copy = malloc(sizeof (element_t));
@@ -81,7 +77,7 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
 
             element1->last_ts = datamgr_get_last_modified(element1, sensor_data->ts);
 
-            /*
+
             //check average for logging
             int avg = datamgr_get_avg(element1->sensor_id);
             if(avg>SET_MAX_TEMP){
@@ -91,6 +87,7 @@ void datamgr_parse_sensor_files(FILE *fp_sensor_map, FILE *fp_sensor_data){
             if(avg<SET_MIN_TEMP){
                 fprintf(stderr,"Room %d is too cold\n", element1->room_id);
             }
+            /*
 
 
             //for length of sensor list print the element

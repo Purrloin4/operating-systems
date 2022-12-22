@@ -53,8 +53,12 @@ clean:
 clean-all: clean
 	rm -rf lib/*.so
 
-run : sensor_gateway sensor_node
-	@echo "Add your own implementation here..."
+test-connmgr-sbuffer: main.c connmgr.c sbuffer.c lib/tcpsock.c
+	mkdir -p build
+	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=10 -DSET_MAX_TEMP=20 -DTIMEOUT=5 main.c connmgr.c sbuffer.c lib/tcpsock.c -o build/test-connmgr-sbuffer     -fdiagnostics-color=auto
+
+run : test-connmgr-sbuffer sensor_node
+	@echo done
 
 zip:
 	zip lab_final.zip main.c connmgr.c connmgr.h datamgr.c datamgr.h sbuffer.c sbuffer.h sensor_db.c sensor_db.h config.h lib/dplist.c lib/dplist.h lib/tcpsock.c lib/tcpsock.h
