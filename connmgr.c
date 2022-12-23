@@ -10,7 +10,6 @@
 #include <pthread.h>
 #include "connmgr.h"
 #include <semaphore.h>
-#include <unistd.h>
 
 
 #define MAX_CONN 3  // state the max. number of connections the server will handle before exiting
@@ -59,6 +58,11 @@ void * connmgr_main(void* conn_args) {
     tcp_close(&client);
     if (tcp_close(&server) != TCP_NO_ERROR) exit(EXIT_FAILURE);
     printf("Test server is shutting down\n");
+    //put dummy in buffer for datamgr and storagemgr threads to know when to stop
+    sensor_data_t *dummy = malloc(sizeof(sensor_data_t));
+    dummy -> id = 0;
+    sbuffer_insert(buffer, dummy);
+    free(dummy);
     return 0;
 }
 

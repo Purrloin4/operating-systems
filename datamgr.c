@@ -12,6 +12,7 @@
 #include "sbuffer.h"
 #include <pthread.h>
 
+
 dplist_t * sensor_list;
 
 void * element_copy(void * element) {
@@ -36,9 +37,11 @@ int element_compare(void * x, void * y) {
     }
 }
 
-void* datamgr_parse_sensor_files(void* sbuffer){
+void* datamgr_parse_sensor_files(sbuffer_t * buffer){
 
-    sbuffer_t* buffer = (sbuffer_t*) sbuffer;
+   //struct connmgr_args* arg = (struct connmgr_args*) args;
+    //int PORT = arg->port;
+    //sbuffer_t * buffer = arg->buffer;
 
     //open file "room_sensor.map"
     FILE *fp_sensor_map = fopen("room_sensor.map", "r");
@@ -62,14 +65,11 @@ void* datamgr_parse_sensor_files(void* sbuffer){
 
         //get sensor data from buffer and update the list
         sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
-        while (sbuffer_eof(buffer) != SBUFFER_SUCCESS && sbuffer_is_empty(buffer)) {
-            sbuffer_remove(buffer, sensor_data);
+        while (1) {
+            if (sbuffer_remove(buffer,sensor_data)==SBUFFER_SUCCESS){
+                //find the element in the list
+                element_t *element1 = get_element_fromID(sensor_data->id);
 
-            //find the element in the list
-            element_t *element1 = get_element_fromID(sensor_data->id);
-            if (element1 == NULL) {
-                fprintf(stderr, "error: sensor id %d not found in sensor map", sensor_data->id);
-            } else {
                 //update the average and the timestamp
                 putr_AVG(element1, sensor_data->value);
 

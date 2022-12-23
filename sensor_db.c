@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include "config.h"
 #include <stdbool.h>
-#include "log_process.h"
+
 
 
 
@@ -28,14 +28,14 @@ FILE * open_db(char * filename, bool append){
     FILE *fp;
     if(append){
         fp = fopen(filename, "a+");
-        log_process("Existing file opened for appending");
+        printf("Existing file opened for appending");
     }else{
         fp = fopen(filename, "w");
-        log_process("New file created");
+        printf("New file created");
     }
     if (fp == NULL){
         printf("Error opening file");
-        log_process("Error opening file");
+        printf("Error opening file");
         exit(1);
     }
     return fp;
@@ -47,11 +47,11 @@ FILE * open_db(char * filename, bool append){
 int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts){
     int x = fprintf(f, "%d,%f,%ld", id, value, ts);
     if (x < 0){
-        log_process("Error writing to file");
+        printf("Error writing to file");
         return -1;
     }
     if(x > 0){
-        log_process("Data written to file");
+        printf("Data written to file");
         return x;
     }
 }
@@ -61,7 +61,7 @@ int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts
 
 int close_db(FILE * fp){
     fclose(fp);
-    log_process("The file has been closed");
+    printf("The file has been closed");
 }
 
 

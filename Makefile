@@ -63,10 +63,10 @@ test-datamgr: main.c datamgr.c sbuffer.c lib/tcpsock.c
 
 test-datamgr-connmgr: main.c datamgr.c connmgr.c sbuffer.c lib/tcpsock.c
 	mkdir -p build
-	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=15 -DSET_MAX_TEMP=20 -DTIMEOUT=5 main.c datamgr.c connmgr.c sbuffer.c lib/tcpsock.c lib/dplist.c -o build/test-datamgr-connmgr     -fdiagnostics-color=auto
+	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=15 -DSET_MAX_TEMP=2 -DTIMEOUT=5 main.c datamgr.c connmgr.c sbuffer.c lib/tcpsock.c lib/dplist.c -o build/test-datamgr-connmgr     -fdiagnostics-color=auto
 
-run : test-datamgr sensor_node
-	./build/test-datamgr 1102
+run : test-datamgr-connmgr sensor_node
+	./build/test-datamgr-connmgr 1111
 
 zip:
 	zip lab_final.zip main.c connmgr.c connmgr.h datamgr.c datamgr.h sbuffer.c sbuffer.h sensor_db.c sensor_db.h config.h lib/dplist.c lib/dplist.h lib/tcpsock.c lib/tcpsock.h

@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "config.h"
 #include "lib/dplist.h"
+#include "sbuffer.h"
 
 
 
@@ -19,6 +20,10 @@
 #ifndef SET_MIN_TEMP
 #error SET_MIN_TEMP not set
 #endif
+
+typedef struct datamgr_args{
+    sbuffer_t * buffer;
+}datamgr_args_t;
 
 /*
  * Use ERROR_HANDLER() for handling memory allocation problems, invalid sensor IDs, non-existing files, etc.
@@ -36,7 +41,7 @@
  *  \param fp_sensor_map file pointer to the map file
  *  \param fp_sensor_data file pointer to the binary data file
  */
-void* datamgr_parse_sensor_files(void *buffer);
+void* datamgr_parse_sensor_files(sbuffer_t *buffer);
 
 /**
  * This method should be called to clean up the datamgr, and to free all used memory. 

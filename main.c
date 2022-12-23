@@ -39,24 +39,27 @@ int main(int argc, char *argv[]) {
 
     // Initialize the buffer
     sbuffer_init(&buffer);
-    /*
+
     connmgr_args_t connmgrArg;
     connmgrArg.port = PORT;
     connmgrArg.buffer = buffer;
-     */
+
+
 
     // Create the threads
-    //pthread_create(&connmgr_thread, NULL, connmgr_main, (void*)&connmgrArg);
+    pthread_create(&connmgr_thread, NULL, connmgr_main, (void*)&connmgrArg);
 
-
-    //pthread_join(connmgr_thread,NULL);
-
+/*
     FILE* fp_sensor_data = fopen("sensor_data", "r");
     pthread_create(&writer_t, NULL, writer_thread, fp_sensor_data);
     pthread_join(writer_t, NULL);
     fclose(fp_sensor_data);
+*/
 
-    pthread_create(&datamgr_thread,NULL,datamgr_parse_sensor_files,(void*) &buffer);
+
+
+    pthread_create(&datamgr_thread,NULL,datamgr_parse_sensor_files(buffer),NULL);
+
 
    //pthread_create(&storagemgr_thread, NULL, storagemgr_parse_sensor_data, NULL);
 
@@ -74,12 +77,13 @@ void *writer_thread(void* fp_sensor_data) {
         sbuffer_insert(buffer, sensor_data);
 
     }
-
+    /*
     //put dummy in file for reader thread to know when to stop
     sensor_data_t *dummy = malloc(sizeof(sensor_data_t));
     dummy -> id = 0;
     sbuffer_insert(buffer, dummy);
     free(dummy);
+     */
     free(sensor_data);
 
 
