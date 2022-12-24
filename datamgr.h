@@ -84,4 +84,5 @@ void putr_AVG(element_t *element, sensor_value_t value);
 element_t *get_element_fromID(sensor_id_t sensor_id);
 
 
+
 #endif  //DATAMGR_H_

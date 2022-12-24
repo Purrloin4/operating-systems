@@ -8,6 +8,8 @@
 #include "sbuffer.h"
 #include "lib/tcpsock.h"
 
+
+
 typedef struct arg_struct {
     tcpsock_t *sock;
     sbuffer_t *buffer;
@@ -22,5 +24,9 @@ typedef struct connmgr_args{
 void* socket_thread(arg_t *arg);
 
 void * connmgr_main(void *arg);
+
+void* timer_thread(void* arg);
+
+void* timer_thread_server(void* arg);
 
 #endif //PLAB3CONNMGR_TEST_SERVER_H

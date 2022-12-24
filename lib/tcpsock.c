@@ -11,6 +11,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "tcpsock.h"
 
@@ -165,7 +166,19 @@ int tcp_wait_for_connection(tcpsock_t *socket, tcpsock_t **new_socket) {
     TCP_ERR_HANDLER(socket->cookie != MAGIC_COOKIE, return TCP_SOCKET_ERROR);
     s = tcp_sock_create();
     TCP_ERR_HANDLER(s == NULL, return TCP_MEMORY_ERROR);
+
+    // Set the O_NONBLOCK flag on the socket descriptor
+    int flags = fcntl(socket->sd, F_GETFL, 0);
+    fcntl(socket->sd, F_SETFL, flags | O_NONBLOCK);
+
     s->sd = accept(socket->sd, (struct sockaddr *) &addr, &length);
+    // Check for EAGAIN or EWOULDBLOCK error
+    if (s->sd == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        // No connections pending, return an error
+        free(s);
+        return TCP_NO_CONNECTION_PENDING;
+    }
+
     TCP_DEBUG_PRINTF(s->sd == -1, "Accept() failed with errno = %d [%s]", errno, strerror(errno));
     TCP_ERR_HANDLER(s->sd == -1, free(s);return TCP_SOCKOP_ERROR);
     p = inet_ntoa(addr.sin_addr);  //returns addr to statically allocated buffer

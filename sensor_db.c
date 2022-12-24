@@ -5,25 +5,37 @@
 
 
 
-#ifndef PLAB1DATAMGR_SENSOR_DB_H
-#define PLAB1DATAMGR_SENSOR_DB_H
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include "config.h"
 #include <stdbool.h>
+#include "sensor_db.h"
+#include "sbuffer.h"
+#include <pthread.h>
+
+
+void* sensor_db_main(void* arg) {
+
+    sbuffer_t* buffer = (sbuffer_t*) arg;
+
+    printf("beh");
+
+    FILE *fp = open_db("data.csv", false);
+    sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
+    while(1) {
+        while (sbuffer_eof(buffer) != SBUFFER_SUCCESS && sbuffer_is_empty(buffer)==SBUFFER_FAILURE) {
+            sbuffer_remove(buffer, sensor_data);
+            insert_sensor(fp, sensor_data->id, sensor_data->value, sensor_data->ts);
+        }
+    }
+    close_db(fp);
+    free(sensor_data);
+    pthread_exit(NULL);
+}
 
 
 
 
-
-
-/*
-open a text file with a given name, and providing an indication
-if the file should be overwritten if the file already exists or if the data should
-be appended to the existing file
- */
 FILE * open_db(char * filename, bool append){
     FILE *fp;
     if(append){
@@ -45,7 +57,9 @@ FILE * open_db(char * filename, bool append){
 
 //append a single sensor reading to the csv file
 int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts){
-    int x = fprintf(f, "%d,%f,%ld", id, value, ts);
+
+
+    int x = fprintf(f, "%d,%f,%ld\n", id, value, ts);
     if (x < 0){
         printf("Error writing to file");
         return -1;
@@ -54,6 +68,7 @@ int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts
         printf("Data written to file");
         return x;
     }
+    return 0;
 }
 
 
@@ -62,9 +77,7 @@ int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts
 int close_db(FILE * fp){
     fclose(fp);
     printf("The file has been closed");
+    return 1;
 }
 
-
-
-#endif //PLAB1DATAMGR_SENSOR_DB_H
 

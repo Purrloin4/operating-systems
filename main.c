@@ -8,8 +8,8 @@
 #include "sbuffer.h"
 #include "connmgr.h"
 #include "datamgr.h"
-#include <unistd.h>
 #include "main.h"
+#include "sensor_db.h"
 
 
 pthread_t connmgr_thread;
@@ -58,11 +58,11 @@ int main(int argc, char *argv[]) {
 
 
 
-    pthread_create(&datamgr_thread,NULL,datamgr_parse_sensor_files(buffer),NULL);
+   //pthread_create(&datamgr_thread,NULL,datamgr_parse_sensor_files(buffer),NULL);
 
 
-   //pthread_create(&storagemgr_thread, NULL, storagemgr_parse_sensor_data, NULL);
-
+   //pthread_create(&storagemgr_thread, NULL, sensor_db_main, (void*)buffer);
+   pthread_join(connmgr_thread, NULL);
 }
 
 //create writer thread
@@ -77,13 +77,13 @@ void *writer_thread(void* fp_sensor_data) {
         sbuffer_insert(buffer, sensor_data);
 
     }
-    /*
+
     //put dummy in file for reader thread to know when to stop
     sensor_data_t *dummy = malloc(sizeof(sensor_data_t));
     dummy -> id = 0;
     sbuffer_insert(buffer, dummy);
     free(dummy);
-     */
+
     free(sensor_data);
 
 
