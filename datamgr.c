@@ -37,11 +37,13 @@ int element_compare(void * x, void * y) {
     }
 }
 
-void* datamgr_parse_sensor_files(sbuffer_t * buffer){
+void* datamgr_parse_sensor_files(void *args){
 
-   //struct connmgr_args* arg = (struct connmgr_args*) args;
-    //int PORT = arg->port;
-    //sbuffer_t * buffer = arg->buffer;
+    printf("---------datamgr_parse_sensor_files start------------\n");
+
+    struct datamgr_args * arg = (struct datamgr_args *) args;
+    sem_t* sem = arg->sem;
+    sbuffer_t * buffer = arg->buffer;
 
     //open file "room_sensor.map"
     FILE *fp_sensor_map = fopen("room_sensor.map", "r");
@@ -65,8 +67,21 @@ void* datamgr_parse_sensor_files(sbuffer_t * buffer){
 
         //get sensor data from buffer and update the list
         sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
-        while (1) {
-            if (sbuffer_remove(buffer,sensor_data)==SBUFFER_SUCCESS){
+    while (sbuffer_eof(buffer) != SBUFFER_SUCCESS  ) {
+        while (sbuffer_is_empty(buffer) == SBUFFER_FAILURE) {
+        //printf("at semwait in datamgr_parse_sensor_files\n");
+            sem_wait(sem);
+        //printf("past semwait in datamgr_parse_sensor_files\n");
+            sbuffer_read(buffer, sensor_data);
+            if(sensor_data->read_by_datamgr==1) {
+                sem_post(sem);
+            }else{
+                if (sensor_data->read_by_storagemgr==1) {
+                    sbuffer_remove(buffer, sensor_data);
+                }
+
+                sbuffer_set_read_by_datamgr(buffer);
+
                 //find the element in the list
                 element_t *element1 = get_element_fromID(sensor_data->id);
 
@@ -77,7 +92,7 @@ void* datamgr_parse_sensor_files(sbuffer_t * buffer){
 
 
                 //check average for logging
-                int avg = datamgr_get_avg(element1->sensor_id);
+                double avg = datamgr_get_avg(element1->sensor_id);
                 if (avg > SET_MAX_TEMP) {
                     fprintf(stderr, "Room %d is too hot\n", element1->room_id);
                 }
@@ -85,20 +100,15 @@ void* datamgr_parse_sensor_files(sbuffer_t * buffer){
                 if (avg < SET_MIN_TEMP) {
                     fprintf(stderr, "Room %d is too cold\n", element1->room_id);
                 }
-
-                /*
-                //for length of sensor list print the element
-                for (int i = 0; i < dpl_size(sensor_list); i++) {
-                    element_t *element2 = dpl_get_element_at_index(sensor_list, i);
-                    fprintf(stderr, "sensor id: %d, room id: %d,last timestamp:%ld, average: %f\n", element2->sensor_id, element2->room_id,
-                            element2->last_ts,datamgr_get_avg(element2->sensor_id));
-                }
-                 */
+                sem_post(sem);
             }
         }
+    }
+
 
 
     free(sensor_data);
+    datamgr_free();
     pthread_exit(NULL);
 
 };

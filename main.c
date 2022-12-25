@@ -40,15 +40,16 @@ int main(int argc, char *argv[]) {
     // Initialize the buffer
     sbuffer_init(&buffer);
 
+    //initialize the semaphore
+    sem_t* sem = malloc(sizeof(sem_t));
+    sem_init(sem, 0, 1);
+
     connmgr_args_t connmgrArg;
     connmgrArg.port = PORT;
     connmgrArg.buffer = buffer;
 
-
-
     // Create the threads
     pthread_create(&connmgr_thread, NULL, connmgr_main, (void*)&connmgrArg);
-
 /*
     FILE* fp_sensor_data = fopen("sensor_data", "r");
     pthread_create(&writer_t, NULL, writer_thread, fp_sensor_data);
@@ -56,13 +57,26 @@ int main(int argc, char *argv[]) {
     fclose(fp_sensor_data);
 */
 
+    datamgr_args_t datamgrArgs;
+    datamgrArgs.buffer = buffer;
+    datamgrArgs.sem = sem;
+
+   pthread_create(&datamgr_thread,NULL,datamgr_parse_sensor_files,(void*)&datamgrArgs);
 
 
-   //pthread_create(&datamgr_thread,NULL,datamgr_parse_sensor_files(buffer),NULL);
+   storagemgr_args storagemgrArgs;
+   storagemgrArgs.buffer = buffer;
+   storagemgrArgs.sem = sem;
 
 
-   //pthread_create(&storagemgr_thread, NULL, sensor_db_main, (void*)buffer);
+   pthread_create(&storagemgr_thread, NULL, sensor_db_main, (void*)&storagemgrArgs);
+
+
    pthread_join(connmgr_thread, NULL);
+   pthread_join(datamgr_thread, NULL);
+   pthread_join(storagemgr_thread, NULL);
+
+   free(sem);
 }
 
 //create writer thread
@@ -78,11 +92,13 @@ void *writer_thread(void* fp_sensor_data) {
 
     }
 
+
     //put dummy in file for reader thread to know when to stop
     sensor_data_t *dummy = malloc(sizeof(sensor_data_t));
     dummy -> id = 0;
     sbuffer_insert(buffer, dummy);
     free(dummy);
+
 
     free(sensor_data);
 

@@ -10,6 +10,7 @@
 #include "config.h"
 #include "lib/dplist.h"
 #include "sbuffer.h"
+#include "semaphore.h"
 
 
 
@@ -22,6 +23,7 @@
 #endif
 
 typedef struct datamgr_args{
+    sem_t* sem;
     sbuffer_t * buffer;
 }datamgr_args_t;
 
@@ -41,7 +43,7 @@ typedef struct datamgr_args{
  *  \param fp_sensor_map file pointer to the map file
  *  \param fp_sensor_data file pointer to the binary data file
  */
-void* datamgr_parse_sensor_files(sbuffer_t *buffer);
+void* datamgr_parse_sensor_files(void* args);
 
 /**
  * This method should be called to clean up the datamgr, and to free all used memory. 

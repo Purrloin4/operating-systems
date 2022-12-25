@@ -116,5 +116,48 @@ int sbuffer_is_empty(sbuffer_t *buffer) {
     return SBUFFER_FAILURE;
 }
 
+int sbuffer_read(sbuffer_t *buffer, sensor_data_t *data) {
+
+
+    if (buffer == NULL) return SBUFFER_FAILURE;
+    if (buffer->head == NULL) return SBUFFER_FAILURE;
+
+    //lock mutex
+    pthread_mutex_lock(&mutex);
+    *data = buffer->head->data;
+    //unlock mutex
+    pthread_mutex_unlock(&mutex);
+
+    return SBUFFER_SUCCESS;
+}
+
+int sbuffer_set_read_by_datamgr(sbuffer_t *buffer){
+
+    if (buffer == NULL) return SBUFFER_FAILURE;
+    if (buffer->head == NULL) return SBUFFER_FAILURE;
+
+    //lock mutex
+    pthread_mutex_lock(&mutex);
+    buffer->head->data.read_by_datamgr = 1;
+    //unlock mutex
+    pthread_mutex_unlock(&mutex);
+    return SBUFFER_SUCCESS;
+}
+
+int sbuffer_set_read_by_storagemgr(sbuffer_t *buffer){
+
+    if (buffer == NULL) return SBUFFER_FAILURE;
+    if (buffer->head == NULL) return SBUFFER_FAILURE;
+
+    //lock mutex
+    pthread_mutex_lock(&mutex);
+    buffer->head->data.read_by_storagemgr = 1;
+    //unlock mutex
+    pthread_mutex_unlock(&mutex);
+    return SBUFFER_SUCCESS;
+}
+
+
+
 
 

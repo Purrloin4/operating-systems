@@ -48,6 +48,12 @@ int sbuffer_eof(sbuffer_t *buffer);
 
 int sbuffer_is_empty(sbuffer_t *buffer);
 
+int sbuffer_read(sbuffer_t *buffer, sensor_data_t *data);
+
+int sbuffer_set_read_by_datamgr(sbuffer_t *buffer);
+
+int sbuffer_set_read_by_storagemgr(sbuffer_t *buffer);
+
 
 
 #endif  //_SBUFFER_H_

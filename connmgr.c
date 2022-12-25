@@ -33,6 +33,8 @@ time_t last_data_time_server;
 
 void * connmgr_main(void* conn_args) {
 
+    printf("------ CONNMGR STARTED --------\n");
+
     struct connmgr_args* arg = (struct connmgr_args*) conn_args;
     int PORT = arg->port;
     sbuffer_t * buffer = arg->buffer;
@@ -158,7 +160,7 @@ void* timer_thread_server(void* arg) {
 
 
     // Set the timeout value
-    const int timeout_secs = 30;
+    const int timeout_secs = 20;
     // Keep track of the last time data was received
     last_data_time_server = time(NULL);
 
@@ -174,77 +176,4 @@ void* timer_thread_server(void* arg) {
     }
     pthread_exit(NULL);
 }
-
-
-/*
-int sd;
-
-void* socket_thread(arg_t *arg) {
-    int bytes,result;
-    sensor_data_t data;
-    int thread_id2 = thread_id;
-    thread_id++;
-    tcpsock_t *client = arg->sock;
-    sbuffer_t *buffer = arg->buffer;
-
-
-    // Set the timeout value for the select function
-    struct timeval timeout;
-    timeout.tv_sec = 5; // Wait for 5 seconds
-    timeout.tv_usec = 0;
-
-    fd_set read_fds;
-
-
-    while (1) {
-        // Reset the read_fds structure
-        FD_ZERO(&read_fds);
-        FD_SET(tcp_get_sd(client,&sd), &read_fds);
-        // Wait for data to be available on the socket, or for the timeout to expire
-        int ret = select(tcp_get_sd(client,&sd) +1, &read_fds, NULL, NULL, &timeout);
-
-        if (ret == 0) {
-            // Timeout expired, break the loop
-            printf("Timed out waiting for data\n");
-            result = TCP_CONNECTION_CLOSED;
-            break;
-        } else if (ret < 0) {
-            // Error occured, break the loop
-            printf("Error waiting for data\n");
-            break;
-        } else {
-                // read sensor ID
-                bytes = sizeof(data.id);
-                result = tcp_receive(client, (void *) &data.id, &bytes);
-                // read temperature
-                bytes = sizeof(data.value);
-                result = tcp_receive(client, (void *) &data.value, &bytes);
-                // read timestamp
-                bytes = sizeof(data.ts);
-                result = tcp_receive(client, (void *) &data.ts, &bytes);
-                data.read_by_datamgr = 0;
-                data.read_by_storagemgr = 0;
-                if ((result == TCP_NO_ERROR) && bytes) {
-                    // instead of printing the data, we put it in the buffer
-                    printf("Connmgr has inserted :sensor id = %" PRIu16 " - temperature = %g - timestamp = %ld\n", data.id, data.value, (long int) data.ts);
-                    sbuffer_insert(buffer, &data);
-            }
-        }
-    }
-
-    if (result == TCP_CONNECTION_CLOSED)
-        printf("Peer has closed connection\n");
-    else
-        printf("Error occured on connection to peer\n");
-
-    thread_id = thread_id2;
-    //printf("Thread with id: %d is closing\n", thread_id);
-    sem_post(&sem);
-
-    pthread_exit(0);
-}
-*/
-
-
-
 

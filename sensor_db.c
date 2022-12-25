@@ -14,20 +14,38 @@
 #include <pthread.h>
 
 
-void* sensor_db_main(void* arg) {
+void* sensor_db_main(void* args) {
 
-    sbuffer_t* buffer = (sbuffer_t*) arg;
+    printf("--------------------sensor_db_main---------------------\n");
 
-    printf("beh");
+
+    struct storagemgr_args * arg = (struct storagemgr_args *) args;
+    sem_t* sem = arg->sem;
+    sbuffer_t * buffer = arg->buffer;
 
     FILE *fp = open_db("data.csv", false);
     sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
-    while(1) {
-        while (sbuffer_eof(buffer) != SBUFFER_SUCCESS && sbuffer_is_empty(buffer)==SBUFFER_FAILURE) {
-            sbuffer_remove(buffer, sensor_data);
-            insert_sensor(fp, sensor_data->id, sensor_data->value, sensor_data->ts);
+        while (sbuffer_eof(buffer) != SBUFFER_SUCCESS  ) {
+            while (sbuffer_is_empty(buffer) == SBUFFER_FAILURE) {
+                //printf("at semwait in sensor_db_main\n");
+                sem_wait(sem);
+                //printf("past semwait in sensor_db_main\n");
+                sbuffer_read(buffer, sensor_data);
+                if (sensor_data->read_by_storagemgr == 1) {
+                    //printf("post sem in sensor_db_main\n");
+                    sem_post(sem);
+                }else{
+                if (sensor_data->read_by_datamgr == 1) {
+                    sbuffer_remove(buffer, sensor_data);
+                }
+                sbuffer_set_read_by_storagemgr(buffer);
+                insert_sensor(fp, sensor_data->id, sensor_data->value, sensor_data->ts);
+                sem_post(sem);
+                }
+            }
         }
-    }
+
+
     close_db(fp);
     free(sensor_data);
     pthread_exit(NULL);
@@ -65,7 +83,7 @@ int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts
         return -1;
     }
     if(x > 0){
-        printf("Data written to file");
+        printf("Data written to file\n");
         return x;
     }
     return 0;
