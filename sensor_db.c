@@ -40,6 +40,7 @@ void* sensor_db_main(void* args) {
                 //printf("at semwait in sensor_db_main\n");
                 sem_wait(sem);
                 if (sbuffer_eof(buffer) == SBUFFER_SUCCESS) {
+                    sem_post(sem);
                     break;
                 }
                 sbuffer_read(buffer, sensor_data);
@@ -63,8 +64,12 @@ void* sensor_db_main(void* args) {
 
 
     close_db(fp);
+        /*
     char* message2 = "The data.csv file has been closed.";
-    write(fd, message2, sizeof(message2));
+    write(fd, message2, strlen(message2));
+*/
+    sprintf(message, "The data.csv file has been closed.");
+    write(fd, message, sizeof(message));
 
     free(sensor_data);
     pthread_exit(NULL);

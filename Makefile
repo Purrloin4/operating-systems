@@ -16,7 +16,7 @@ sensor_gateway : main.c connmgr.c datamgr.c sensor_db.c sbuffer.c lib/libdplist.
 	gcc -c sensor_db.c -Wall -std=c11 -Werror -DSET_MIN_TEMP=10 -DSET_MAX_TEMP=20 -DTIMEOUT=5 -o sensor_db.o -fdiagnostics-color=auto
 	gcc -c sbuffer.c   -Wall -std=c11 -Werror -DSET_MIN_TEMP=10 -DSET_MAX_TEMP=20 -DTIMEOUT=5 -o sbuffer.o   -fdiagnostics-color=auto
 	@echo "$(TITLE_COLOR)\n***** LINKING sensor_gateway *****$(NO_COLOR)"
-	gcc main.o connmgr.o datamgr.o sensor_db.o sbuffer.o -ldplist -ltcpsock -lpthread -o sensor_gateway -Wall -L./lib -Wl,-rpath=./lib -lsqlite3 -fdiagnostics-color=auto
+	gcc main.o connmgr.o datamgr.o sensor_db.o sbuffer.o -ldplist -ltcpsock -lpthread -o sensor_gateway -Wall -L./lib -Wl,-rpath=./lib  -fdiagnostics-color=auto
 
 file_creator : file_creator.c
 	@echo "$(TITLE_COLOR)\n***** COMPILE & LINKING file_creator *****$(NO_COLOR)"
@@ -86,8 +86,16 @@ test-datamgr-storagemgr: main.c sensor_db.c datamgr.c sbuffer.c lib/tcpsock.c
 	mkdir -p build
 	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=15 -DSET_MAX_TEMP=20 -DTIMEOUT=5 main.c sensor_db.c datamgr.c sbuffer.c lib/tcpsock.c lib/dplist.c -o build/test-datamgr-storagemgr     -fdiagnostics-color=auto
 
-run : test-datamgr sensor_node
-	./build/test-datamgr 1111
+run : all
+	./sensor_gateway 1258&
+	sleep 1
+	./sensor_node 1 4 127.0.0.1 1258&
+	./sensor_node 15 4 127.0.0.1 1258&
+	./sensor_node 21 4 127.0.0.1 1258&
+	sleep 20
+	killall sensor_node&
+	sleep 25
+
 
 
 

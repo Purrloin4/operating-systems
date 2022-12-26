@@ -73,6 +73,7 @@ int main(int argc, char *argv[]) {
 
             // If the pipe is closed, exit the loop
             if (bytes_read == 0) {
+                printf("pipe closed\n");
                 break;
             }
 
@@ -84,7 +85,7 @@ int main(int argc, char *argv[]) {
                     tm.tm_sec);
 
             //log <sequence number> <timestamp> <read_msg> to a new line to file
-            char *s = malloc(strlen(read_msg) + strlen(time) + 1);
+            char *s = malloc(strlen(read_msg) + strlen(time) + 4);
 
             //lock mutex
             pthread_mutex_lock(&logger_mutex);
@@ -104,10 +105,6 @@ int main(int argc, char *argv[]) {
 
             free(s);
         }
-
-
-
-
 
     }
 
@@ -150,5 +147,6 @@ int main(int argc, char *argv[]) {
         pthread_join(storagemgr_thread, NULL);
 
         free(sem);
+        sbuffer_free(&buffer);
     }
 }

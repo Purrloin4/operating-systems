@@ -17,16 +17,19 @@
 #define TIMEOUT 5
 #endif
 
+#ifndef MAX_CONN
+#define MAX_CONN 3
+#endif
 
-#define MAX_CONN 3  // state the max. number of connections the server will handle before exiting
+
 pthread_t threads[MAX_CONN];  // array of threads
-pthread_t timer_th[MAX_CONN];
+//pthread_t timer_th[MAX_CONN];
 pthread_t timer_th_server;
 sem_t sem;  // semaphore to control the number of threads
 int thread_id;
 int flag[MAX_CONN];
 int flag_server;
-time_t last_data_time[MAX_CONN];
+//time_t last_data_time[MAX_CONN];
 time_t last_data_time_server;
 
 
@@ -72,7 +75,7 @@ void * connmgr_main(void* conn_args) {
 
             //start socket threa
             pthread_create(&threads[thread_id], NULL, (void *(*)(void *)) socket_thread, &args);
-            pthread_create(&timer_th[thread_id], NULL, timer_thread, (void *) &thread_id);
+            //pthread_create(&timer_th[thread_id], NULL, timer_thread, (void *) &thread_id);
         }
 
     } while (flag_server != 1);
@@ -125,11 +128,11 @@ void *socket_thread(arg_t *arg) {
             }
         }
 
-        last_data_time[thread_id2] = time(NULL);
+        //last_data_time[thread_id2] = time(NULL);
         last_data_time_server = time(NULL);
 
 
-    } while (result == TCP_NO_ERROR && flag[thread_id2] != 1);
+    } while (result == TCP_NO_ERROR);
 
     if (result == TCP_CONNECTION_CLOSED) {
         printf("Peer has closed connection\n");
@@ -137,9 +140,11 @@ void *socket_thread(arg_t *arg) {
         sprintf(message, "Sensor node %d has closed the connection", data.id);
         write(pipefd, message, sizeof(message));
     }
+    /*
     else if (flag[thread_id2] == 1){
         printf("Timeout has closed peer connection\n");
     }
+     */
     else
         printf("Error occured on connection to peer\n");
 
@@ -149,7 +154,7 @@ void *socket_thread(arg_t *arg) {
 
     pthread_exit(0);
 }
-
+/*
 void* timer_thread(void* arg) {
     // Extract the client socket descriptor from the argument
     int id = *((int*)arg);
@@ -169,7 +174,7 @@ void* timer_thread(void* arg) {
     }
     pthread_exit(NULL);
 }
-
+*/
 
 void* timer_thread_server(void* arg) {
 

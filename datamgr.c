@@ -73,10 +73,9 @@ void* datamgr_parse_sensor_files(void *args){
         sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
     while (sbuffer_eof(buffer) != SBUFFER_SUCCESS  ) {
         while (sbuffer_is_empty(buffer) == SBUFFER_FAILURE) {
-
             sem_wait(sem);
-
             if (sbuffer_eof(buffer) == SBUFFER_SUCCESS) {
+                sem_post(sem);
                 break;
             }
 
@@ -88,10 +87,16 @@ void* datamgr_parse_sensor_files(void *args){
                     sbuffer_remove(buffer, sensor_data);
                 }
 
+
                 sbuffer_set_read_by_datamgr(buffer);
 
                 //find the element in the list
                 element_t *element1 = get_element_fromID(sensor_data->id);
+
+                if (element1 == 0){
+                    sem_post(sem);
+                    break;
+                }
 
                 //update the average and the timestamp
                 putr_AVG(element1, sensor_data->value);
@@ -128,14 +133,12 @@ void* datamgr_parse_sensor_files(void *args){
 };
 
 element_t *get_element_fromID(sensor_id_t sensor_id) {
-    ERROR_HANDLER(sensor_id < 0, "error: sensor_id is invalid");
 
     int index = dpl_get_index_of_element(sensor_list, &sensor_id);
     if (index == -1) {
         char message[100];
         sprintf(message, "Received sensor data with invalid sensor node ID %hu", sensor_id);
         write(pipefd, message, sizeof(message));
-        ERROR_HANDLER(sensor_id , "error: sensor_id is not found");
         return 0;
     } else {
         element_t *element = dpl_get_element_at_index(sensor_list, index);
@@ -148,8 +151,6 @@ element_t *get_element_fromID(sensor_id_t sensor_id) {
 
 
 sensor_value_t datamgr_get_avg(sensor_id_t sensor_id){
-
-    ERROR_HANDLER(sensor_id < 0, "error: sensor_id is invalid");
 
         element_t *element = get_element_fromID(sensor_id);
 

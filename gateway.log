@@ -1,0 +1,15 @@
+0 2022-12-26 17:21:48 A new data.csv file has been created.
+1 2022-12-26 17:21:51 Sensor node 15 has opened a new connection
+2 2022-12-26 17:21:51 Data insertion from sensor 15 succeeded
+3 2022-12-26 17:21:54 Sensor node 1 has opened a new connection
+4 2022-12-26 17:21:54 Data insertion from sensor 1 succeeded
+5 2022-12-26 17:21:54 Received sensor data with invalid sensor node ID 1
+6 2022-12-26 17:21:55 Data insertion from sensor 15 succeeded
+7 2022-12-26 17:21:56 Sensor node 15 reports it’s too hot (avg temp = 20.020047)
+8 2022-12-26 17:21:58 Data insertion from sensor 1 succeeded
+9 2022-12-26 17:21:58 Received sensor data with invalid sensor node ID 1
+10 2022-12-26 17:21:59 Sensor node 15 reports it’s too hot (avg temp = 20.022486)
+11 2022-12-26 17:21:59 Data insertion from sensor 15 succeeded
+12 2022-12-26 17:22:1 Sensor node 1 has closed the connection
+13 2022-12-26 17:22:2 Sensor node 15 has closed the connection
+14 2022-12-26 17:22:23 The data.csv file has been closed.
