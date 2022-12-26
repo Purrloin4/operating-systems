@@ -11,9 +11,12 @@
 #include "lib/dplist.h"
 #include "sbuffer.h"
 #include <pthread.h>
+#include <sys/select.h>
+#include <unistd.h>
 
 
 dplist_t * sensor_list;
+int pipefd;
 
 void * element_copy(void * element) {
     element_t* copy = malloc(sizeof (element_t));
@@ -44,6 +47,7 @@ void* datamgr_parse_sensor_files(void *args){
     struct datamgr_args * arg = (struct datamgr_args *) args;
     sem_t* sem = arg->sem;
     sbuffer_t * buffer = arg->buffer;
+    pipefd = arg->pipe_write_fd;
 
     //open file "room_sensor.map"
     FILE *fp_sensor_map = fopen("room_sensor.map", "r");
@@ -69,9 +73,13 @@ void* datamgr_parse_sensor_files(void *args){
         sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
     while (sbuffer_eof(buffer) != SBUFFER_SUCCESS  ) {
         while (sbuffer_is_empty(buffer) == SBUFFER_FAILURE) {
-        //printf("at semwait in datamgr_parse_sensor_files\n");
+
             sem_wait(sem);
-        //printf("past semwait in datamgr_parse_sensor_files\n");
+
+            if (sbuffer_eof(buffer) == SBUFFER_SUCCESS) {
+                break;
+            }
+
             sbuffer_read(buffer, sensor_data);
             if(sensor_data->read_by_datamgr==1) {
                 sem_post(sem);
@@ -95,10 +103,16 @@ void* datamgr_parse_sensor_files(void *args){
                 double avg = datamgr_get_avg(element1->sensor_id);
                 if (avg > SET_MAX_TEMP) {
                     fprintf(stderr, "Room %d is too hot\n", element1->room_id);
+                    char message[100];
+                    sprintf(message, "Sensor node %d reports it’s too hot (avg temp = %f)", element1->sensor_id, avg);
+                    write(pipefd, message, sizeof(message));
                 }
 
                 if (avg < SET_MIN_TEMP) {
                     fprintf(stderr, "Room %d is too cold\n", element1->room_id);
+                    char message[100];
+                    sprintf(message, "Sensor node %d reports it’s too cold (avg temp = %f)", element1->sensor_id, avg);
+                    write(pipefd, message, sizeof(message));
                 }
                 sem_post(sem);
             }
@@ -118,6 +132,9 @@ element_t *get_element_fromID(sensor_id_t sensor_id) {
 
     int index = dpl_get_index_of_element(sensor_list, &sensor_id);
     if (index == -1) {
+        char message[100];
+        sprintf(message, "Received sensor data with invalid sensor node ID %hu", sensor_id);
+        write(pipefd, message, sizeof(message));
         ERROR_HANDLER(sensor_id , "error: sensor_id is not found");
         return 0;
     } else {

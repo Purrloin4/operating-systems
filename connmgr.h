@@ -13,11 +13,13 @@
 typedef struct arg_struct {
     tcpsock_t *sock;
     sbuffer_t *buffer;
+    int pipe_write_fd;
 }arg_t;
 
 typedef struct connmgr_args{
     int port;
     sbuffer_t * buffer;
+    int pipe_write_fd;
 }connmgr_args_t;
 
 

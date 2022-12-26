@@ -8,17 +8,24 @@
 #include "sbuffer.h"
 #include "connmgr.h"
 #include "datamgr.h"
-#include "main.h"
 #include "sensor_db.h"
+#include <unistd.h>
+#include <sys/types.h>
+
+#define READ_END 0
+#define WRITE_END 1
 
 
 pthread_t connmgr_thread;
 pthread_t datamgr_thread;
 pthread_t storagemgr_thread;
 
-pthread_t writer_t;
+pthread_mutex_t logger_mutex;
 
 sbuffer_t *buffer;
+
+int seq = 0;
+
 
 int PORT;
 
@@ -31,78 +38,117 @@ int main(int argc, char *argv[]) {
     }
 
     PORT = atoi(argv[1]);
-    if(PORT>65536 || PORT<1024) {
+    if (PORT > 65536 || PORT < 1024) {
         printf("Need to pass a portnumber larger than 1023, and smaller than 65536\n");
         exit(EXIT_FAILURE);
     }
 
+    //create pipes
+    int fd[2];
+    int ret = pipe(fd);
+    if (ret == -1) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
 
-    // Initialize the buffer
-    sbuffer_init(&buffer);
-
-    //initialize the semaphore
-    sem_t* sem = malloc(sizeof(sem_t));
-    sem_init(sem, 0, 1);
-
-    connmgr_args_t connmgrArg;
-    connmgrArg.port = PORT;
-    connmgrArg.buffer = buffer;
-
-    // Create the threads
-    pthread_create(&connmgr_thread, NULL, connmgr_main, (void*)&connmgrArg);
-/*
-    FILE* fp_sensor_data = fopen("sensor_data", "r");
-    pthread_create(&writer_t, NULL, writer_thread, fp_sensor_data);
-    pthread_join(writer_t, NULL);
-    fclose(fp_sensor_data);
-*/
-
-    datamgr_args_t datamgrArgs;
-    datamgrArgs.buffer = buffer;
-    datamgrArgs.sem = sem;
-
-   pthread_create(&datamgr_thread,NULL,datamgr_parse_sensor_files,(void*)&datamgrArgs);
+    // Fork the child process
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
+    // In the child process
+    if (pid == 0) {
+        // Close write end of the pipe
+        close(fd[WRITE_END]);
 
 
-   storagemgr_args storagemgrArgs;
-   storagemgrArgs.buffer = buffer;
-   storagemgrArgs.sem = sem;
+        pthread_mutex_init(&logger_mutex, NULL);
 
 
-   pthread_create(&storagemgr_thread, NULL, sensor_db_main, (void*)&storagemgrArgs);
+        while(1) {
+            // Read from the pipe
+            char read_msg[1024];
+            long bytes_read = read(fd[READ_END], read_msg, sizeof(read_msg));
+
+            // If the pipe is closed, exit the loop
+            if (bytes_read == 0) {
+                break;
+            }
+
+            //get current time
+            time_t t = time(NULL);
+            struct tm tm = *localtime(&t);
+            char time[100];
+            sprintf(time, "%d-%d-%d %d:%d:%d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour + 1, tm.tm_min,
+                    tm.tm_sec);
+
+            //log <sequence number> <timestamp> <read_msg> to a new line to file
+            char *s = malloc(strlen(read_msg) + strlen(time) + 1);
+
+            //lock mutex
+            pthread_mutex_lock(&logger_mutex);
+
+            FILE *fp;
+            fp = fopen("gateway.log", "a+");
+
+            sprintf(s, "%d %s %s\n", seq, time, read_msg);
+            fprintf(fp, "%s", s);
+            seq++;
+
+            //close file
+            fclose(fp);
+
+            //unlock mutex
+            pthread_mutex_unlock(&logger_mutex);
+
+            free(s);
+        }
 
 
-   pthread_join(connmgr_thread, NULL);
-   pthread_join(datamgr_thread, NULL);
-   pthread_join(storagemgr_thread, NULL);
 
-   free(sem);
-}
 
-//create writer thread
-void *writer_thread(void* fp_sensor_data) {
-    //get sensor data from binary file
-    sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
-    while (fread(&sensor_data->id, sizeof(sensor_data->id ), 1, fp_sensor_data) == 1) {
-        fread(&sensor_data->value, sizeof(sensor_data->value), 1, fp_sensor_data);
-        fread(&sensor_data->ts, sizeof(sensor_data->ts), 1, fp_sensor_data);
-
-        //put sensor data into buffer
-        sbuffer_insert(buffer, sensor_data);
 
     }
 
+        // In the parent process
+    else {
 
-    //put dummy in file for reader thread to know when to stop
-    sensor_data_t *dummy = malloc(sizeof(sensor_data_t));
-    dummy -> id = 0;
-    sbuffer_insert(buffer, dummy);
-    free(dummy);
+        // Initialize the buffer
+        sbuffer_init(&buffer);
+
+        //initialize the semaphore
+        sem_t *sem = malloc(sizeof(sem_t));
+        sem_init(sem, 0, 1);
+
+        connmgr_args_t connmgrArg;
+        connmgrArg.port = PORT;
+        connmgrArg.buffer = buffer;
+        connmgrArg.pipe_write_fd = fd[WRITE_END];
+
+        pthread_create(&connmgr_thread, NULL, connmgr_main, (void *) &connmgrArg);
+
+        datamgr_args_t datamgrArgs;
+        datamgrArgs.buffer = buffer;
+        datamgrArgs.sem = sem;
+        datamgrArgs.pipe_write_fd = fd[WRITE_END];
+
+        pthread_create(&datamgr_thread, NULL, datamgr_parse_sensor_files, (void *) &datamgrArgs);
 
 
-    free(sensor_data);
+        storagemgr_args storagemgrArgs;
+        storagemgrArgs.buffer = buffer;
+        storagemgrArgs.sem = sem;
+        storagemgrArgs.pipe_write_fd = fd[WRITE_END];
 
 
-    pthread_exit(0);
+        pthread_create(&storagemgr_thread, NULL, sensor_db_main, (void *) &storagemgrArgs);
+
+
+        pthread_join(connmgr_thread, NULL);
+        pthread_join(datamgr_thread, NULL);
+        pthread_join(storagemgr_thread, NULL);
+
+        free(sem);
+    }
 }
-

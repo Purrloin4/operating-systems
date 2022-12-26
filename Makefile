@@ -76,6 +76,7 @@ test-storagemgr-connmgr: main.c sensor_db.c connmgr.c sbuffer.c lib/tcpsock.c
 	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=15 -DSET_MAX_TEMP=20 -DTIMEOUT=5 main.c sensor_db.c connmgr.c sbuffer.c lib/tcpsock.c -o build/test-storagemgr-connmgr     -fdiagnostics-color=auto
 
 test-connmgr-datamgr-storagemgr: main.c sensor_db.c connmgr.c datamgr.c sbuffer.c lib/tcpsock.c
+	rm -f gateway.log
 	rm -f data.csv
 	mkdir -p build
 	gcc -g -Wall -std=c11 -Werror -DSET_MIN_TEMP=15 -DSET_MAX_TEMP=10 -DTIMEOUT=5 main.c sensor_db.c connmgr.c datamgr.c sbuffer.c lib/tcpsock.c lib/dplist.c -o build/test-connmgr-datamgr-storagemgr     -fdiagnostics-color=auto

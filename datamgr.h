@@ -25,6 +25,7 @@
 typedef struct datamgr_args{
     sem_t* sem;
     sbuffer_t * buffer;
+    int pipe_write_fd;
 }datamgr_args_t;
 
 /*

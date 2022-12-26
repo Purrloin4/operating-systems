@@ -12,6 +12,7 @@
 typedef struct storagemgr_args{
     sem_t* sem;
     sbuffer_t * buffer;
+    int pipe_write_fd;
 }storagemgr_args;
 
 void* sensor_db_main(void* arg);

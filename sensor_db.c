@@ -12,6 +12,10 @@
 #include "sensor_db.h"
 #include "sbuffer.h"
 #include <pthread.h>
+#include <sys/select.h>
+#include <unistd.h>
+
+int fd;
 
 
 void* sensor_db_main(void* args) {
@@ -22,17 +26,24 @@ void* sensor_db_main(void* args) {
     struct storagemgr_args * arg = (struct storagemgr_args *) args;
     sem_t* sem = arg->sem;
     sbuffer_t * buffer = arg->buffer;
+    fd = arg->pipe_write_fd;
 
     FILE *fp = open_db("data.csv", false);
+
+    char message[100];
+    sprintf(message, "A new data.csv file has been created.");
+    write(fd, message, sizeof(message));
+
     sensor_data_t *sensor_data = malloc(sizeof(sensor_data_t));
         while (sbuffer_eof(buffer) != SBUFFER_SUCCESS  ) {
             while (sbuffer_is_empty(buffer) == SBUFFER_FAILURE) {
                 //printf("at semwait in sensor_db_main\n");
                 sem_wait(sem);
-                //printf("past semwait in sensor_db_main\n");
+                if (sbuffer_eof(buffer) == SBUFFER_SUCCESS) {
+                    break;
+                }
                 sbuffer_read(buffer, sensor_data);
                 if (sensor_data->read_by_storagemgr == 1) {
-                    //printf("post sem in sensor_db_main\n");
                     sem_post(sem);
                 }else{
                 if (sensor_data->read_by_datamgr == 1) {
@@ -40,6 +51,11 @@ void* sensor_db_main(void* args) {
                 }
                 sbuffer_set_read_by_storagemgr(buffer);
                 insert_sensor(fp, sensor_data->id, sensor_data->value, sensor_data->ts);
+
+
+                sprintf(message, "Data insertion from sensor %d succeeded", sensor_data->id);
+                write(fd, message, sizeof(message));
+
                 sem_post(sem);
                 }
             }
@@ -47,6 +63,9 @@ void* sensor_db_main(void* args) {
 
 
     close_db(fp);
+    char* message2 = "The data.csv file has been closed.";
+    write(fd, message2, sizeof(message2));
+
     free(sensor_data);
     pthread_exit(NULL);
 }
@@ -83,7 +102,7 @@ int insert_sensor(FILE * f, sensor_id_t id, sensor_value_t value, sensor_ts_t ts
         return -1;
     }
     if(x > 0){
-        printf("Data written to file\n");
+        printf("Data written to file: %d,%f,%ld\n", id, value, ts);
         return x;
     }
     return 0;

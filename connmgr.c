@@ -38,6 +38,8 @@ void * connmgr_main(void* conn_args) {
     struct connmgr_args* arg = (struct connmgr_args*) conn_args;
     int PORT = arg->port;
     sbuffer_t * buffer = arg->buffer;
+    int pipefd = arg->pipe_write_fd;
+
 
 
     if(PORT>65536 || PORT<1024) {
@@ -66,6 +68,7 @@ void * connmgr_main(void* conn_args) {
             struct arg_struct args;
             args.sock = client;
             args.buffer = buffer;
+            args.pipe_write_fd = pipefd;
 
             //start socket threa
             pthread_create(&threads[thread_id], NULL, (void *(*)(void *)) socket_thread, &args);
@@ -90,9 +93,11 @@ void *socket_thread(arg_t *arg) {
     int bytes,result;
     sensor_data_t data;
     int thread_id2 = thread_id;
+    int flag2 = 0;
     thread_id++;
     tcpsock_t *client = arg->sock;
     sbuffer_t *buffer = arg->buffer;
+    int pipefd = arg->pipe_write_fd;
     do {
         // read sensor ID
         bytes = sizeof(data.id);
@@ -107,11 +112,17 @@ void *socket_thread(arg_t *arg) {
         data.read_by_datamgr = 0;
         data.read_by_storagemgr = 0;
         if ((result == TCP_NO_ERROR) && bytes) {
-
             //instead of printing the data, we put it in the buffer
             printf("Connmgr has inserted :sensor id = %" PRIu16 " - temperature = %g - timestamp = %ld\n", data.id, data.value, (long int) data.ts);
             sbuffer_insert(buffer, &data);
 
+            //only once log the message Sensor node <sensorNodeID> has opened a new connection
+            if (flag2 == 0) {
+                char message[100];
+                sprintf(message, "Sensor node %d has opened a new connection", data.id);
+                write(pipefd, message, sizeof(message));
+                flag2 = 1;
+            }
         }
 
         last_data_time[thread_id2] = time(NULL);
@@ -120,8 +131,12 @@ void *socket_thread(arg_t *arg) {
 
     } while (result == TCP_NO_ERROR && flag[thread_id2] != 1);
 
-    if (result == TCP_CONNECTION_CLOSED)
+    if (result == TCP_CONNECTION_CLOSED) {
         printf("Peer has closed connection\n");
+        char message[100];
+        sprintf(message, "Sensor node %d has closed the connection", data.id);
+        write(pipefd, message, sizeof(message));
+    }
     else if (flag[thread_id2] == 1){
         printf("Timeout has closed peer connection\n");
     }
